@@ -4,6 +4,8 @@ namespace Tygh\Addons\TwispayPayment;
 class TwispayProcessor
 {
     protected $secret_key;
+    protected $checkoutUrl = 'https://secure.twispay.com'; // URL of Twispay's payment page
+
 
     public function __construct($secret_key)
     {
@@ -19,10 +21,11 @@ class TwispayProcessor
     {
         $this->log('Initiating payment for Order ID: ' . $order_info['order_id']);
 
+        // Prepare the data that will be sent
         $postData = [
-            'id' => 0,
-            'siteId' => [YOUR_TWISPAY_SITE_ID],
-            'customerId' => [YOUR_TWISPAY_CUSTOMER_ID],
+            'id' => 0, // this should be replaced with the actual order ID from your system
+            'siteId' => $order_info['siteId'], // assuming 'siteId' is included in $order_info
+            'customerId' => $order_info['customerId'], // assuming 'customerId' is included in $order_info
             'externalOrderId' => $order_info['order_id'],
             'orderType' => "one-time",
             'orderStatus' => "pending",
@@ -34,7 +37,7 @@ class TwispayProcessor
             'intervalType' => "day",
             'intervalValue' => 0,
             'retryPayment' => "true",
-            'nextDueDate' => "2023-11-10T05:17:55.957Z",
+            'nextDueDate' => date("Y-m-d\TH:i:s.v\Z", strtotime('+1 month')), // assuming a monthly subscription
             'transactionMethod' => "card",
             'tags' => [
                 [
@@ -45,23 +48,34 @@ class TwispayProcessor
             ]
         ];
 
-        $ch = curl_init($this->apiUrl);
+        // Create an auto-submit form with the data as hidden fields
+        echo '<html><body>';
+        echo '<form id="twispay_payment_form" action="' . $this->checkoutUrl . '" method="post">';
 
-        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            "Content-Type: application/json",
-            "Authorization: Bearer {$this->secretKey}"
-        ]);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($postData));
-
-        $response = curl_exec($ch);
-
-        if(curl_errno($ch)) {
-            throw new Exception(curl_error($ch));
+        foreach ($postData as $key => $value) {
+            // If the value is an array, we need to handle it a bit differently
+            if (is_array($value)) {
+                foreach ($value as $subKey => $subValue) {
+                    // This assumes that sub-arrays are one-level deep
+                    if (is_array($subValue)) {
+                        foreach ($subValue as $lastKey => $lastValue) {
+                            echo '<input type="hidden" name="'. htmlspecialchars($key).'['. htmlspecialchars($subKey).']['. htmlspecialchars($lastKey) .']" value="'. htmlspecialchars($lastValue) .'">';
+                        }
+                    } else {
+                        echo '<input type="hidden" name="'. htmlspecialchars($key).'['. htmlspecialchars($subKey) .']" value="'. htmlspecialchars($subValue) .'">';
+                    }
+                }
+            } else {
+                echo '<input type="hidden" name="'. htmlspecialchars($key) .'" value="'. htmlspecialchars($value) .'">';
+            }
         }
 
-        curl_close($ch);
+        echo '</form>';
+        echo '<script type="text/javascript">document.getElementById("twispay_payment_form").submit();</script>';
+        echo '</body></html>';
+
+        // The script will auto-submit the form, redirecting the customer to the payment page.
+        exit; // Important to prevent further page processing
     }
 
     public function validateCallback($response)
