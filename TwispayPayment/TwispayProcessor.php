@@ -4,7 +4,7 @@ namespace Tygh\Addons\TwispayPayment;
 class TwispayProcessor
 {
     protected $secret_key;
-    protected $checkoutUrl = 'https://secure.twispay.com'; // URL of Twispay's payment page
+    protected $checkoutUrl = CONFIG::TwispaySecureURL; // URL of Twispay's payment page
 
 
     public function __construct($secret_key)
@@ -69,7 +69,7 @@ class TwispayProcessor
                 echo '<input type="hidden" name="'. htmlspecialchars($key) .'" value="'. htmlspecialchars($value) .'">';
             }
         }
-
+        
         echo '</form>';
         echo '<script type="text/javascript">document.getElementById("twispay_payment_form").submit();</script>';
         echo '</body></html>';

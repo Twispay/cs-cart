@@ -2,5 +2,7 @@
     <input type="hidden" name="order_id" value="{$order_id}" />
     <input type="hidden" name="amount" value="{$amount}" />
     {/* Additional fields as required by Twispay API */}
-    <input type="submit" name="submit" value="{__("twispay_payment_submit")}" />
+        <noscript>
+            <input type="submit" name="submit" value="{__("twispay_payment_submit")}" />
+        </noscript>
 </form>
